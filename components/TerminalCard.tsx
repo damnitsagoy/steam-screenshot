@@ -14,8 +14,21 @@ type Props = {
 };
 
 /**
- * "Steam Report" style portrait card (9:16).
+ * "Steam Report" share card at a fixed design size of 540 x 960 (9:16).
+ *
+ * Must always render at that exact size -- the parent <ScaleToFit> handles
+ * visual scaling for responsive preview. That way:
+ *  - Tailwind's fixed-pixel utilities (px-7, text-[88px], etc.) are always
+ *    correct relative to the card
+ *  - The downloaded PNG is captured at design size and exported at 2x
+ *    for a crisp 1080 x 1920 output
+ *
  * Root element has id="receipt-card" so html-to-image can target it.
+ *
+ * Avoids `mix-blend-mode`, `mask-image`, and `background-image` for remote
+ * assets because those don't export reliably across mobile browsers via
+ * html-to-image. Uses an actual <img crossOrigin="anonymous"> for the hero
+ * art, and a sibling gradient div for the fade.
  */
 export default function TerminalCard({
   player,
@@ -39,8 +52,11 @@ export default function TerminalCard({
   return (
     <div
       id="receipt-card"
-      className="relative aspect-9/16 w-full overflow-hidden rounded-3xl replay-bg text-white shadow-2xl"
-      style={{ maxWidth: 480 }}
+      className="receipt-card relative overflow-hidden rounded-3xl replay-bg text-white shadow-2xl"
+      style={{
+        width: 540,
+        height: 960,
+      }}
     >
       {/* Gradient top strip */}
       <div className="replay-strip absolute inset-x-0 top-0 h-8 z-30 flex items-center px-5">
@@ -49,22 +65,40 @@ export default function TerminalCard({
         </span>
       </div>
 
-      {/* Faint hero artwork bleed from the top game -- masked so it fades
-          smoothly into the background rather than ending at a hard edge. */}
+      {/* Hero artwork as an <img> -- reliable to capture on mobile Safari
+          (unlike background-image URLs). */}
       {heroAppid && (
-        <div
-          aria-hidden
-          className="art-bleed absolute inset-x-0 top-0 h-[65%] z-0"
-          style={{
-            backgroundImage: `url(${steamImg.libraryHero(heroAppid)})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)",
-            maskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)",
-          }}
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            aria-hidden
+            src={steamImg.libraryHero(heroAppid)}
+            crossOrigin="anonymous"
+            alt=""
+            className="pointer-events-none absolute inset-x-0 top-0 z-0 w-full object-cover"
+            style={{
+              height: "60%",
+              filter: "saturate(0.7) brightness(0.55) blur(1px)",
+              opacity: 0.55,
+            }}
+          />
+          {/* Gradient overlay that fades the art into the background color.
+              Using a simple linear-gradient (not mask-image) so it captures
+              consistently on mobile. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 z-[1]"
+            style={{
+              height: "60%",
+              background:
+                "linear-gradient(to bottom," +
+                " rgba(20,8,18,0) 0%," +
+                " rgba(20,8,18,0.15) 40%," +
+                " rgba(20,8,18,0.7) 80%," +
+                " rgba(20,8,18,1) 100%)",
+            }}
+          />
+        </>
       )}
 
       {/* Content */}
@@ -141,7 +175,7 @@ export default function TerminalCard({
                     key={g.appid}
                     className="flex items-center gap-3 rounded-lg bg-white/[0.04] p-2 ring-1 ring-white/5"
                   >
-                    {/* Landscape capsule thumbnail (460x215 ratio) */}
+                    {/* Landscape capsule thumbnail */}
                     <div className="relative h-[42px] w-[90px] shrink-0 overflow-hidden rounded-md ring-1 ring-white/10">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
