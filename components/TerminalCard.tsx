@@ -1,5 +1,6 @@
 import {
   minutesToHours,
+  proxied,
   steamImg,
   type PlayerSummary,
   type SteamGame,
@@ -106,13 +107,24 @@ export default function TerminalCard({
         {/* User row */}
         <div className="flex items-center gap-3">
           {player.avatarfull && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={player.avatarfull}
-              alt=""
-              crossOrigin="anonymous"
-              className="h-10 w-10 rounded-full ring-2 ring-white/20"
-            />
+            <div
+              className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10"
+              style={{
+                // Inner shadow gives the subtle ring effect without
+                // painting a stroke *outside* the <img>, which on mobile
+                // Safari sometimes appears as a hollow arc when the
+                // image fails to load.
+                boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.18)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={proxied(player.avatarfull)}
+                alt=""
+                crossOrigin="anonymous"
+                className="h-full w-full object-cover"
+              />
+            </div>
           )}
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">
