@@ -36,8 +36,8 @@ export default async function UserPage({
   if (!player) notFound();
 
   return (
-    <main className="relative mx-auto flex min-h-screen max-w-xl flex-col items-center px-5 py-8">
-      <div className="mb-6 flex w-full items-center justify-between text-xs text-white/60">
+    <main className="relative mx-auto flex min-h-screen w-full max-w-[520px] flex-col items-center px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mb-5 flex w-full items-center justify-between text-xs text-white/60">
         <Link href="/" className="hover:text-white">
           ← back
         </Link>
@@ -46,24 +46,26 @@ export default async function UserPage({
         </a>
       </div>
 
-      <RangeToggle current={range} steamid={steamid} />
-
-      <div className="mt-6 w-full">
-        <div className="mx-auto" style={{ maxWidth: 480 }}>
-          <TerminalCard
-            player={player}
-            games={stats.games}
-            rangeLabel={stats.label}
-            approximate={stats.approximate}
-            totalMinutes={stats.totalMinutes}
-          />
+      <div className="w-full overflow-x-auto pb-1">
+        <div className="mx-auto flex w-max">
+          <RangeToggle current={range} steamid={steamid} />
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5 w-full">
+        <TerminalCard
+          player={player}
+          games={stats.games}
+          rangeLabel={stats.label}
+          approximate={stats.approximate}
+          totalMinutes={stats.totalMinutes}
+        />
+      </div>
+
+      <div className="mt-5">
         <DownloadButton
           targetId="receipt-card"
-          filename={`steam-replay-${player.personaname.replace(/\s+/g, "_")}-${range}.png`}
+          filename={`steam-report-${player.personaname.replace(/\s+/g, "_")}-${range}.png`}
         />
       </div>
 
@@ -76,8 +78,8 @@ export default async function UserPage({
 
       {stats.games.length === 0 && (
         <p className="mt-6 max-w-sm text-center text-sm text-white/70">
-          No games found in this window. Your profile's game details may be
-          private, or you haven't played anything recently.
+          No games found in this window. Your profile&apos;s game details may
+          be private, or you haven&apos;t played anything recently.
         </p>
       )}
     </main>

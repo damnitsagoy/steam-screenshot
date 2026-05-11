@@ -15,7 +15,13 @@ type Props = {
 
 /**
  * "Steam Report" style portrait card (9:16).
+ *
  * Root element has id="receipt-card" so html-to-image can target it.
+ *
+ * Avoids `mix-blend-mode` and `mask-image` because those don't export
+ * reliably across mobile browsers via html-to-image. Uses stacked
+ * linear-gradients and opacity instead, which look identical and
+ * export consistently everywhere.
  */
 export default function TerminalCard({
   player,
@@ -39,8 +45,12 @@ export default function TerminalCard({
   return (
     <div
       id="receipt-card"
-      className="relative aspect-9/16 w-full overflow-hidden rounded-3xl replay-bg text-white shadow-2xl"
-      style={{ maxWidth: 480 }}
+      className="receipt-card relative overflow-hidden rounded-3xl replay-bg text-white shadow-2xl"
+      style={{
+        aspectRatio: "9 / 16",
+        width: "100%",
+        maxWidth: 480,
+      }}
     >
       {/* Gradient top strip */}
       <div className="replay-strip absolute inset-x-0 top-0 h-8 z-30 flex items-center px-5">
@@ -49,22 +59,37 @@ export default function TerminalCard({
         </span>
       </div>
 
-      {/* Faint hero artwork bleed from the top game -- masked so it fades
-          smoothly into the background rather than ending at a hard edge. */}
+      {/* Hero artwork bleed -- uses a sibling gradient overlay for the fade
+          instead of mask-image so html-to-image captures it correctly on
+          every browser. */}
       {heroAppid && (
-        <div
-          aria-hidden
-          className="art-bleed absolute inset-x-0 top-0 h-[65%] z-0"
-          style={{
-            backgroundImage: `url(${steamImg.libraryHero(heroAppid)})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)",
-            maskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)",
-          }}
-        />
+        <>
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 z-0"
+            style={{
+              height: "60%",
+              backgroundImage: `url(${steamImg.libraryHero(heroAppid)})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "saturate(0.7) brightness(0.55) blur(1px)",
+              opacity: 0.55,
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 z-[1]"
+            style={{
+              height: "60%",
+              background:
+                "linear-gradient(to bottom," +
+                " rgba(20,8,18,0) 0%," +
+                " rgba(20,8,18,0.15) 40%," +
+                " rgba(20,8,18,0.7) 80%," +
+                " rgba(20,8,18,1) 100%)",
+            }}
+          />
+        </>
       )}
 
       {/* Content */}
