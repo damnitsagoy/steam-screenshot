@@ -14,6 +14,8 @@ function getKey(): string {
   return k;
 }
 
+export type Range = "7d" | "2w" | "1m" | "all";
+
 export type PlayerSummary = {
   steamid: string;
   personaname: string;
@@ -28,7 +30,17 @@ export type SteamGame = {
   playtime_forever: number;
   /** minutes */
   playtime_2weeks?: number;
+  /** unix seconds */
+  rtime_last_played?: number;
   img_icon_url?: string;
+};
+
+export type RangeStats = {
+  games: SteamGame[];
+  totalMinutes: number;
+  /** true if the playtime shown is an estimate (derived, not a true range total) */
+  approximate: boolean;
+  label: string;
 };
 
 type RawPlayer = {
@@ -43,6 +55,7 @@ type RawGame = {
   name?: string;
   playtime_forever?: number;
   playtime_2weeks?: number;
+  rtime_last_played?: number;
   img_icon_url?: string;
 };
 
@@ -68,21 +81,17 @@ export async function getPlayerSummary(steamId: string): Promise<PlayerSummary |
 }
 
 export async function getRecentlyPlayed(steamId: string): Promise<SteamGame[]> {
-  const url = `${API_BASE}/IPlayerService/GetRecentlyPlayedGames/v1/?key=${getKey()}&steamid=${steamId}&count=20`;
+  const url = `${API_BASE}/IPlayerService/GetRecentlyPlayedGames/v1/?key=${getKey()}&steamid=${steamId}&count=50`;
   const data = await fetchJson<{ response: { games?: RawGame[] } }>(url);
   return normalizeGames(data.response?.games ?? []);
 }
 
-export async function getTopAllTime(steamId: string, count = 10): Promise<SteamGame[]> {
+export async function getOwnedGames(steamId: string): Promise<SteamGame[]> {
   const url =
     `${API_BASE}/IPlayerService/GetOwnedGames/v1/?key=${getKey()}` +
     `&steamid=${steamId}&include_appinfo=1&include_played_free_games=1`;
   const data = await fetchJson<{ response: { games?: RawGame[] } }>(url);
-  const games = normalizeGames(data.response?.games ?? []).filter(
-    (g) => g.playtime_forever > 0
-  );
-  games.sort((a, b) => b.playtime_forever - a.playtime_forever);
-  return games.slice(0, count);
+  return normalizeGames(data.response?.games ?? []);
 }
 
 function normalizeGames(games: RawGame[]): SteamGame[] {
@@ -93,15 +102,100 @@ function normalizeGames(games: RawGame[]): SteamGame[] {
       name: g.name ?? `App ${g.appid}`,
       playtime_forever: g.playtime_forever ?? 0,
       playtime_2weeks: g.playtime_2weeks,
+      rtime_last_played: g.rtime_last_played,
       img_icon_url: g.img_icon_url,
     }));
 }
 
+/**
+ * Get stats for a given range. Steam only exposes true 2-week and all-time
+ * playtime totals. For 7d and 1m we filter games by `rtime_last_played` and
+ * proportionally estimate their contribution from playtime_2weeks when
+ * available — so those totals are marked `approximate`.
+ */
+export async function getRangeStats(
+  steamId: string,
+  range: Range
+): Promise<RangeStats> {
+  if (range === "2w") {
+    const recent = await getRecentlyPlayed(steamId);
+    const games = recent
+      .slice()
+      .sort(
+        (a, b) => (b.playtime_2weeks ?? 0) - (a.playtime_2weeks ?? 0)
+      );
+    const total = games.reduce((a, g) => a + (g.playtime_2weeks ?? 0), 0);
+    return {
+      games,
+      totalMinutes: total,
+      approximate: false,
+      label: "LAST 2 WEEKS",
+    };
+  }
+
+  if (range === "all") {
+    const owned = await getOwnedGames(steamId);
+    const games = owned
+      .filter((g) => g.playtime_forever > 0)
+      .sort((a, b) => b.playtime_forever - a.playtime_forever);
+    const total = games.reduce((a, g) => a + g.playtime_forever, 0);
+    return {
+      games,
+      totalMinutes: total,
+      approximate: false,
+      label: "ALL TIME",
+    };
+  }
+
+  // 7d and 1m: filter by last-played timestamp, estimate contribution.
+  const days = range === "7d" ? 7 : 30;
+  const cutoff = Math.floor(Date.now() / 1000) - days * 86_400;
+
+  const owned = await getOwnedGames(steamId);
+  const recentIdx = new Map<number, SteamGame>();
+  for (const g of await getRecentlyPlayed(steamId)) recentIdx.set(g.appid, g);
+
+  const filtered = owned
+    .filter((g) => (g.rtime_last_played ?? 0) >= cutoff && g.playtime_forever > 0)
+    .map((g) => {
+      // If the game shows up in recent (i.e. played in last 14d), scale its
+      // 2-week minutes to the requested window. Otherwise fall back to a
+      // conservative fraction of playtime_forever.
+      const twoWeekMin = recentIdx.get(g.appid)?.playtime_2weeks;
+      let estimate: number;
+      if (twoWeekMin !== undefined) {
+        estimate =
+          range === "7d" ? Math.round(twoWeekMin / 2) : twoWeekMin; // ~ bounded
+      } else {
+        estimate = Math.min(g.playtime_forever, 120); // unknown, cap at 2h
+      }
+      return { ...g, _estimate: estimate };
+    });
+
+  filtered.sort((a, b) => b._estimate - a._estimate);
+
+  const games: SteamGame[] = filtered.map((g) => ({
+    ...g,
+    playtime_2weeks: g._estimate, // overload this field for rendering consistency
+  }));
+  const total = filtered.reduce((a, g) => a + g._estimate, 0);
+
+  return {
+    games,
+    totalMinutes: total,
+    approximate: true,
+    label: range === "7d" ? "LAST 7 DAYS" : "LAST MONTH",
+  };
+}
+
 /** Steam CDN image helpers -- no auth required. */
 export const steamImg = {
-  /** 460x215 store capsule */
+  /** 460x215 store capsule (landscape) */
   capsule: (appid: number) =>
     `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`,
+  /** 600x900 portrait library capsule (what Steam library shows) */
+  libraryCapsule: (appid: number) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`,
   /** 1920x620 library hero */
   libraryHero: (appid: number) =>
     `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_hero.jpg`,

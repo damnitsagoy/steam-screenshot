@@ -1,38 +1,39 @@
 import Link from "next/link";
 
+type RangeKey = "7d" | "2w" | "1m" | "all";
+
 type Props = {
-  current: "recent" | "alltime";
+  current: RangeKey;
   steamid: string;
 };
 
-export default function RangeToggle({ current, steamid }: Props) {
-  const Opt = ({
-    value,
-    label,
-  }: {
-    value: "recent" | "alltime";
-    label: string;
-  }) => {
-    const active = current === value;
-    return (
-      <Link
-        href={`/u/${steamid}?range=${value}`}
-        className={
-          "border px-4 py-2 font-mono text-xs uppercase tracking-widest transition " +
-          (active
-            ? "border-phosphor bg-phosphor text-bg shadow-phosphor"
-            : "border-phosphor-dim text-phosphor-dim hover:border-phosphor hover:text-phosphor")
-        }
-      >
-        {label}
-      </Link>
-    );
-  };
+const OPTIONS: { value: RangeKey; label: string }[] = [
+  { value: "7d", label: "7 days" },
+  { value: "2w", label: "2 weeks" },
+  { value: "1m", label: "1 month" },
+  { value: "all", label: "all time" },
+];
 
+export default function RangeToggle({ current, steamid }: Props) {
   return (
-    <div className="flex gap-2">
-      <Opt value="recent" label="last 2 weeks" />
-      <Opt value="alltime" label="all-time top 10" />
+    <div className="inline-flex rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner">
+      {OPTIONS.map((opt) => {
+        const active = current === opt.value;
+        return (
+          <Link
+            key={opt.value}
+            href={`/u/${steamid}?range=${opt.value}`}
+            className={
+              "rounded-full px-4 py-1.5 text-xs font-medium transition " +
+              (active
+                ? "bg-white text-ink shadow"
+                : "text-white/70 hover:text-white")
+            }
+          >
+            {opt.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }
