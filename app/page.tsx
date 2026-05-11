@@ -49,6 +49,22 @@ export default async function Home({
         Not affiliated with Valve or Steam. We only read your public profile
         and recent games — no password is ever requested.
       </p>
+
+      <p className="mt-4 text-xs text-white/50">
+        created with{" "}
+        <span className="text-accent-pink" aria-label="love">
+          ♥
+        </span>{" "}
+        by{" "}
+        <a
+          href="https://github.com/damnitsagoy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-white/80 underline-offset-2 hover:text-white hover:underline"
+        >
+          @damnitsagoy
+        </a>
+      </p>
     </main>
   );
 }
