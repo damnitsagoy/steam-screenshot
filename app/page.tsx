@@ -15,7 +15,7 @@ export default async function Home({
       <div className="replay-strip mb-10 h-1.5 w-40 rounded-full" />
 
       <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl">
-        Your Steam Replay.
+        Your Steam Report.
       </h1>
       <p className="mt-4 max-w-md text-white/70">
         A shareable recap of your recent games — hours, top titles, and a

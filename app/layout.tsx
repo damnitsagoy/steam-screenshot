@@ -14,9 +14,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Steam Replay — your gaming wrapped",
+  title: "Steam Report — your gaming wrapped",
   description:
-    "Generate a shareable Steam Replay-style recap of your recent games. Downloadable as a 9:16 PNG.",
+    "Generate a shareable Steam Report recap of your recent games. Downloadable as a 9:16 PNG.",
 };
 
 export default function RootLayout({

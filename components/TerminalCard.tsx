@@ -14,7 +14,7 @@ type Props = {
 };
 
 /**
- * "Steam Replay" style portrait card (9:16).
+ * "Steam Report" style portrait card (9:16).
  * Root element has id="receipt-card" so html-to-image can target it.
  */
 export default function TerminalCard({
@@ -25,10 +25,6 @@ export default function TerminalCard({
   totalMinutes,
 }: Props) {
   const top = games.slice(0, 5);
-  const totalSecondary = top.reduce(
-    (a, g) => a + (g.playtime_2weeks ?? g.playtime_forever),
-    0
-  );
   const maxMinutes = Math.max(
     1,
     ...top.map((g) => g.playtime_2weeks ?? g.playtime_forever)
@@ -44,31 +40,32 @@ export default function TerminalCard({
     <div
       id="receipt-card"
       className="relative aspect-9/16 w-full overflow-hidden rounded-3xl replay-bg text-white shadow-2xl"
-      style={{
-        // Keep a consistent render size so html-to-image exports crisp at 2x.
-        maxWidth: 480,
-      }}
+      style={{ maxWidth: 480 }}
     >
       {/* Gradient top strip */}
       <div className="replay-strip absolute inset-x-0 top-0 h-8 z-30 flex items-center px-5">
         <span className="font-display text-[13px] font-semibold tracking-tight text-black/80">
-          Steam Replay {year}
+          Steam Report {year}
         </span>
       </div>
 
-      {/* Faint hero artwork bleed from the top game */}
+      {/* Faint hero artwork bleed from the top game -- masked so it fades
+          smoothly into the background rather than ending at a hard edge. */}
       {heroAppid && (
         <div
           aria-hidden
-          className="art-bleed absolute inset-x-0 top-0 h-[55%] z-0"
+          className="art-bleed absolute inset-x-0 top-0 h-[65%] z-0"
           style={{
             backgroundImage: `url(${steamImg.libraryHero(heroAppid)})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)",
+            maskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%)",
           }}
         />
       )}
-      <div aria-hidden className="art-veil absolute inset-0 z-10" />
 
       {/* Content */}
       <div className="relative z-20 flex h-full flex-col px-7 pt-14 pb-7">
@@ -94,8 +91,8 @@ export default function TerminalCard({
         </div>
 
         {/* Hero stat */}
-        <div className="mt-8">
-          <div className="font-display text-[96px] leading-[0.9] font-bold tracking-tight">
+        <div className="mt-7">
+          <div className="font-display text-[88px] leading-[0.9] font-bold tracking-tight">
             {gamesPlayedCount}
           </div>
           <div className="mt-1 text-base font-medium text-white/80">
@@ -117,7 +114,7 @@ export default function TerminalCard({
           />
         </div>
 
-        {/* Top games */}
+        {/* Top games - vertical stack */}
         <div className="mt-7 flex-1">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="font-display text-lg font-semibold">Top Games</h2>
@@ -131,53 +128,64 @@ export default function TerminalCard({
               No games played in this window.
             </p>
           ) : (
-            <div className="grid grid-cols-5 gap-2">
+            <ol className="space-y-2">
               {top.map((g, i) => {
                 const minutes = g.playtime_2weeks ?? g.playtime_forever;
-                const pct =
-                  totalSecondary > 0
-                    ? Math.round((minutes / totalSecondary) * 100)
-                    : 0;
+                const hours = minutesToHours(minutes);
                 const barPct = Math.max(
-                  8,
+                  6,
                   Math.round((minutes / maxMinutes) * 100)
                 );
                 return (
-                  <div key={g.appid} className="flex flex-col items-stretch">
-                    <div className="relative overflow-hidden rounded-md shadow-lg shadow-black/40 ring-1 ring-white/10">
+                  <li
+                    key={g.appid}
+                    className="flex items-center gap-3 rounded-lg bg-white/[0.04] p-2 ring-1 ring-white/5"
+                  >
+                    {/* Landscape capsule thumbnail (460x215 ratio) */}
+                    <div className="relative h-[42px] w-[90px] shrink-0 overflow-hidden rounded-md ring-1 ring-white/10">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={steamImg.libraryCapsule(g.appid)}
+                        src={steamImg.capsule(g.appid)}
                         alt={g.name}
                         crossOrigin="anonymous"
-                        className="block h-auto w-full aspect-[2/3] object-cover"
+                        className="h-full w-full object-cover"
                       />
-                      <div className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
-                        {String(i + 1).padStart(2, "0")}
+                    </div>
+
+                    {/* Rank + name + bar */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="min-w-0 truncate text-sm font-semibold">
+                          <span className="mr-2 text-white/40 tabular-nums">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          {g.name}
+                        </div>
+                        <div className="shrink-0 text-sm font-semibold tabular-nums text-white/90">
+                          {approximate ? "~" : ""}
+                          {hours}h
+                        </div>
+                      </div>
+                      <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${barPct}%`,
+                            background: barColor(i),
+                          }}
+                        />
                       </div>
                     </div>
-                    <div className="mt-2 text-center text-[11px] font-semibold tabular-nums">
-                      {pct}%
-                    </div>
-                    <div className="mt-1 h-[3px] overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${barPct}%`,
-                          background: barColor(i),
-                        }}
-                      />
-                    </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ol>
           )}
         </div>
 
         {/* Footer */}
         <div className="mt-5 flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-white/40">
-          <span>steam-replay</span>
+          <span>steam-report</span>
           <span>
             {approximate ? "estimated · " : ""}
             generated {formatDate()}
