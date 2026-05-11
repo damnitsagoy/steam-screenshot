@@ -14,14 +14,21 @@ type Props = {
 };
 
 /**
- * "Steam Report" style portrait card (9:16).
+ * "Steam Report" share card at a fixed design size of 540 x 960 (9:16).
+ *
+ * Must always render at that exact size -- the parent <ScaleToFit> handles
+ * visual scaling for responsive preview. That way:
+ *  - Tailwind's fixed-pixel utilities (px-7, text-[88px], etc.) are always
+ *    correct relative to the card
+ *  - The downloaded PNG is captured at design size and exported at 2x
+ *    for a crisp 1080 x 1920 output
  *
  * Root element has id="receipt-card" so html-to-image can target it.
  *
- * Avoids `mix-blend-mode` and `mask-image` because those don't export
- * reliably across mobile browsers via html-to-image. Uses stacked
- * linear-gradients and opacity instead, which look identical and
- * export consistently everywhere.
+ * Avoids `mix-blend-mode`, `mask-image`, and `background-image` for remote
+ * assets because those don't export reliably across mobile browsers via
+ * html-to-image. Uses an actual <img crossOrigin="anonymous"> for the hero
+ * art, and a sibling gradient div for the fade.
  */
 export default function TerminalCard({
   player,
@@ -47,9 +54,8 @@ export default function TerminalCard({
       id="receipt-card"
       className="receipt-card relative overflow-hidden rounded-3xl replay-bg text-white shadow-2xl"
       style={{
-        aspectRatio: "9 / 16",
-        width: "100%",
-        maxWidth: 480,
+        width: 540,
+        height: 960,
       }}
     >
       {/* Gradient top strip */}
@@ -59,26 +65,29 @@ export default function TerminalCard({
         </span>
       </div>
 
-      {/* Hero artwork bleed -- uses a sibling gradient overlay for the fade
-          instead of mask-image so html-to-image captures it correctly on
-          every browser. */}
+      {/* Hero artwork as an <img> -- reliable to capture on mobile Safari
+          (unlike background-image URLs). */}
       {heroAppid && (
         <>
-          <div
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             aria-hidden
-            className="absolute inset-x-0 top-0 z-0"
+            src={steamImg.libraryHero(heroAppid)}
+            crossOrigin="anonymous"
+            alt=""
+            className="pointer-events-none absolute inset-x-0 top-0 z-0 w-full object-cover"
             style={{
               height: "60%",
-              backgroundImage: `url(${steamImg.libraryHero(heroAppid)})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
               filter: "saturate(0.7) brightness(0.55) blur(1px)",
               opacity: 0.55,
             }}
           />
+          {/* Gradient overlay that fades the art into the background color.
+              Using a simple linear-gradient (not mask-image) so it captures
+              consistently on mobile. */}
           <div
             aria-hidden
-            className="absolute inset-x-0 top-0 z-[1]"
+            className="pointer-events-none absolute inset-x-0 top-0 z-[1]"
             style={{
               height: "60%",
               background:
@@ -166,7 +175,7 @@ export default function TerminalCard({
                     key={g.appid}
                     className="flex items-center gap-3 rounded-lg bg-white/[0.04] p-2 ring-1 ring-white/5"
                   >
-                    {/* Landscape capsule thumbnail (460x215 ratio) */}
+                    {/* Landscape capsule thumbnail */}
                     <div className="relative h-[42px] w-[90px] shrink-0 overflow-hidden rounded-md ring-1 ring-white/10">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img

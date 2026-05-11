@@ -7,23 +7,31 @@ type Props = {
   filename: string;
 };
 
-const EXPORT_WIDTH = 1080;
-const EXPORT_HEIGHT = 1920;
-
 /**
  * Export the receipt card as a 1080x1920 PNG.
  *
- * On mobile (especially iOS Safari), html-to-image is fragile when asked
- * to scale up a small visible element by a large pixelRatio -- it can
- * produce blank regions, blurry text, or run out of memory. To sidestep
- * that, we:
+ * The card lives inside a <ScaleToFit> wrapper which visually scales it
+ * via CSS transform. We don't want to capture the transformed version
+ * because (a) transforms make html-to-image's geometry math brittle,
+ * especially on mobile Safari, and (b) the bounding rect is wrong.
  *
- *  1. Clone the card into an off-screen container that is already exactly
- *     1080px wide -- so the PNG is captured at 1:1 regardless of viewport.
- *  2. Wait for every <img> inside the clone to finish loading before
- *     capturing, so no thumbnails render as broken.
- *  3. Render with pixelRatio=1 since the clone is already the right size.
+ * Instead, we:
+ *  1. Clone the card into an off-screen container at its natural design
+ *     size (540x960) with no transforms.
+ *  2. Wait for all <img>s to load (otherwise on mobile you can get a PNG
+ *     with missing thumbnails or background).
+ *  3. Wait for document.fonts.ready so Inter/Space Grotesk are actually
+ *     rendered (not the sans-serif fallback).
+ *  4. Snapshot at pixelRatio: 2 -> exactly 1080x1920.
+ *
+ * A download anchor is clicked with rel=noopener + target=_blank so iOS
+ * Safari reliably triggers the save (it can be finicky with same-tab
+ * downloads from async flows).
  */
+const DESIGN_WIDTH = 540;
+const DESIGN_HEIGHT = 960;
+const PIXEL_RATIO = 2; // -> 1080x1920 PNG
+
 export default function DownloadButton({ targetId, filename }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -38,45 +46,53 @@ export default function DownloadButton({ targetId, filename }: Props) {
       const node = document.getElementById(targetId);
       if (!node) throw new Error(`no element with id="${targetId}"`);
 
-      // Build an off-screen container sized exactly for the PNG.
+      // Wait for web fonts to be ready before we clone, so the clone picks
+      // up the real font faces rather than fallback sans-serif.
+      if (typeof document !== "undefined" && "fonts" in document) {
+        await document.fonts.ready;
+      }
+
+      // Build an off-screen container sized exactly for the design.
       offscreen = document.createElement("div");
-      offscreen.style.position = "fixed";
-      offscreen.style.top = "0";
-      offscreen.style.left = "0";
-      offscreen.style.width = `${EXPORT_WIDTH}px`;
-      offscreen.style.height = `${EXPORT_HEIGHT}px`;
-      offscreen.style.pointerEvents = "none";
-      offscreen.style.opacity = "0";
-      offscreen.style.zIndex = "-1";
-      offscreen.style.transform = "translateX(-200%)"; // extra safety
+      Object.assign(offscreen.style, {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: `${DESIGN_WIDTH}px`,
+        height: `${DESIGN_HEIGHT}px`,
+        pointerEvents: "none",
+        opacity: "0",
+        zIndex: "-1",
+        // Push it off-screen so it doesn't flash.
+        transform: "translateX(-200%)",
+      });
 
       const clone = node.cloneNode(true) as HTMLElement;
-      // Force clone to render at the export size exactly.
-      clone.style.width = `${EXPORT_WIDTH}px`;
-      clone.style.maxWidth = "none";
-      clone.style.height = `${EXPORT_HEIGHT}px`;
-      // Strip the id so we don't have two elements with the same id in
-      // the DOM while we work.
+      // The card already has width/height baked into its style attribute
+      // at the design size, so no further sizing is needed. Clear any id
+      // to avoid DOM id collisions.
       clone.removeAttribute("id");
       offscreen.appendChild(clone);
       document.body.appendChild(offscreen);
 
-      // Wait for all images in the clone to finish loading.
+      // Wait for all images inside the clone to finish loading. Without
+      // this, on a cold cache (first-time mobile users), the PNG can come
+      // out with missing thumbnails or no background.
       await Promise.all(
         Array.from(clone.querySelectorAll("img")).map(waitForImage)
       );
 
-      // One more frame to make sure layout has settled at the new size.
+      // Give layout one more frame to settle.
       await new Promise((r) => requestAnimationFrame(() => r(null)));
 
       const { toPng } = await import("html-to-image");
 
       const dataUrl = await toPng(clone, {
-        pixelRatio: 1,
-        cacheBust: true,
+        pixelRatio: PIXEL_RATIO,
+        cacheBust: false, // avoid query-string cache misses on Steam CDN
         backgroundColor: "#0f0a0f",
-        width: EXPORT_WIDTH,
-        height: EXPORT_HEIGHT,
+        width: DESIGN_WIDTH,
+        height: DESIGN_HEIGHT,
       });
 
       triggerDownload(dataUrl, filename);
@@ -105,7 +121,7 @@ export default function DownloadButton({ targetId, filename }: Props) {
 }
 
 function waitForImage(img: HTMLImageElement): Promise<void> {
-  // Make sure anonymous CORS is set so the image can be painted to canvas.
+  // Ensure CORS is requested so the canvas isn't tainted when we export.
   if (!img.crossOrigin) img.crossOrigin = "anonymous";
   if (img.complete && img.naturalWidth > 0) return Promise.resolve();
   return new Promise((resolve) => {
@@ -120,13 +136,12 @@ function waitForImage(img: HTMLImageElement): Promise<void> {
 }
 
 function triggerDownload(dataUrl: string, filename: string) {
-  // Mobile Safari sometimes refuses programmatic <a download> taps when the
-  // element is created and clicked synchronously inside a long async flow.
-  // Opening in a new tab is a reliable fallback on iOS.
   const a = document.createElement("a");
   a.href = dataUrl;
   a.download = filename;
   a.rel = "noopener";
+  // Opening in a new tab makes iOS Safari reliably fire the save flow,
+  // where same-tab downloads from long async chains sometimes silently fail.
   a.target = "_blank";
   document.body.appendChild(a);
   a.click();
