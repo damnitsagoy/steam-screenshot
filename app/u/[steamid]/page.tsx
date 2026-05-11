@@ -3,6 +3,7 @@ import Link from "next/link";
 import TerminalCard from "@/components/TerminalCard";
 import DownloadButton from "@/components/DownloadButton";
 import RangeToggle from "@/components/RangeToggle";
+import ScaleToFit from "@/components/ScaleToFit";
 import { getPlayerSummary, getRangeStats, type Range } from "@/lib/steam";
 
 export const dynamic = "force-dynamic";
@@ -36,8 +37,8 @@ export default async function UserPage({
   if (!player) notFound();
 
   return (
-    <main className="relative mx-auto flex min-h-screen max-w-xl flex-col items-center px-5 py-8">
-      <div className="mb-6 flex w-full items-center justify-between text-xs text-white/60">
+    <main className="relative mx-auto flex w-full max-w-[520px] flex-col items-center px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mb-5 flex w-full items-center justify-between text-xs text-white/60">
         <Link href="/" className="hover:text-white">
           ← back
         </Link>
@@ -46,10 +47,18 @@ export default async function UserPage({
         </a>
       </div>
 
-      <RangeToggle current={range} steamid={steamid} />
+      {/* Horizontally scrollable on very narrow phones so 4 pills never wrap. */}
+      <div className="w-full overflow-x-auto pb-1">
+        <div className="mx-auto flex w-max">
+          <RangeToggle current={range} steamid={steamid} />
+        </div>
+      </div>
 
-      <div className="mt-6 w-full">
-        <div className="mx-auto" style={{ maxWidth: 480 }}>
+      {/* ScaleToFit keeps the card always at 9:16 visually, regardless of
+          viewport, while the card itself renders at a fixed 540x960 design
+          size so its content never overflows or clips. */}
+      <div className="mt-5 w-full">
+        <ScaleToFit designWidth={540} designHeight={960} maxWidth={540}>
           <TerminalCard
             player={player}
             games={stats.games}
@@ -57,13 +66,13 @@ export default async function UserPage({
             approximate={stats.approximate}
             totalMinutes={stats.totalMinutes}
           />
-        </div>
+        </ScaleToFit>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5">
         <DownloadButton
           targetId="receipt-card"
-          filename={`steam-replay-${player.personaname.replace(/\s+/g, "_")}-${range}.png`}
+          filename={`steam-report-${player.personaname.replace(/\s+/g, "_")}-${range}.png`}
         />
       </div>
 
@@ -76,10 +85,14 @@ export default async function UserPage({
 
       {stats.games.length === 0 && (
         <p className="mt-6 max-w-sm text-center text-sm text-white/70">
-          No games found in this window. Your profile's game details may be
-          private, or you haven't played anything recently.
+          No games found in this window. Your profile&apos;s game details may
+          be private, or you haven&apos;t played anything recently.
         </p>
       )}
+
+      {/* Extra bottom padding so on mobile the download button and caption
+          are comfortably scrollable above the bottom browser chrome. */}
+      <div aria-hidden className="h-10" />
     </main>
   );
 }

@@ -37,11 +37,9 @@ body {
     linear-gradient(180deg, #25091f 0%, #140812 55%, #0d060c 100%);
 }
 
-/* Faint art bleed: big, very desaturated, low-opacity hero backgrounds */
-.art-bleed {
-  filter: saturate(0.6) brightness(0.55) blur(1px);
-  mix-blend-mode: screen;
-  opacity: 0.22;
+/* iOS Safari: avoid rendering glitches when the card is transformed during
+   off-screen export. Disabling tap-highlight keeps the captured snapshot
+   clean if the user taps while it's rendering. */
+.receipt-card {
+  -webkit-tap-highlight-color: transparent;
 }
-
-
