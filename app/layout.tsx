@@ -1,23 +1,22 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, VT323 } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const jetbrains = JetBrains_Mono({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-jetbrains",
+  variable: "--font-inter",
   display: "swap",
 });
-const vt323 = VT323({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-vt323",
+  variable: "--font-space-grotesk",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "STEAM://REPLAY — your gaming receipt",
+  title: "Steam Replay — your gaming wrapped",
   description:
-    "Generate a retro-terminal receipt of your recently played Steam games. Shareable as a PNG.",
+    "Generate a shareable Steam Replay-style recap of your recent games. Downloadable as a 9:16 PNG.",
 };
 
 export default function RootLayout({
@@ -26,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${jetbrains.variable} ${vt323.variable}`}>
-      <body className="min-h-screen bg-bg text-phosphor antialiased">
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+      <body className="min-h-screen bg-ink text-white antialiased">
         {children}
       </body>
     </html>

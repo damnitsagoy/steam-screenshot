@@ -18,16 +18,17 @@ export default function DownloadButton({ targetId, filename }: Props) {
       const node = document.getElementById(targetId);
       if (!node) throw new Error(`no element with id="${targetId}"`);
 
-      // Dynamic import so the library isn't in the server bundle.
       const { toPng } = await import("html-to-image");
 
+      // Target a 1080x1920 export regardless of on-screen size.
+      const rect = node.getBoundingClientRect();
+      const targetWidth = 1080;
+      const pixelRatio = targetWidth / rect.width;
+
       const dataUrl = await toPng(node, {
-        pixelRatio: 2,
+        pixelRatio,
         cacheBust: true,
-        backgroundColor: "#05080a",
-        // Tell html-to-image to skip remote images that fail CORS,
-        // rather than aborting the whole render.
-        skipFonts: false,
+        backgroundColor: "#0f0a0f",
       });
 
       const a = document.createElement("a");
@@ -48,13 +49,11 @@ export default function DownloadButton({ targetId, filename }: Props) {
       <button
         onClick={handleDownload}
         disabled={busy}
-        className="inline-flex items-center gap-2 border border-phosphor bg-panel px-5 py-2 font-mono text-xs uppercase tracking-widest text-phosphor shadow-phosphor transition hover:bg-phosphor hover:text-bg disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-ink shadow-lg transition hover:bg-white/90 disabled:opacity-50"
       >
-        {busy ? "> rendering..." : "[ download png ]"}
+        {busy ? "Rendering..." : "Download PNG"}
       </button>
-      {err && (
-        <p className="font-mono text-xs text-phosphor-red">&gt; ERR: {err}</p>
-      )}
+      {err && <p className="text-xs text-red-300">{err}</p>}
     </div>
   );
 }
