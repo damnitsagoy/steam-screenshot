@@ -147,36 +147,68 @@ export async function getRangeStats(
     };
   }
 
-  // 7d and 1m: filter by last-played timestamp, estimate contribution.
+  // 7d and 1m: approximate from two sources combined.
+  //
+  // Source A: GetRecentlyPlayedGames (always has reliable playtime_2weeks
+  //   for anything played in the last ~14 days). This is our floor -- if
+  //   something appears here, it must appear in our 7d / 1m view too.
+  //
+  // Source B: GetOwnedGames filtered by rtime_last_played within window.
+  //   Catches games played 15-30 days ago that won't be in recent.
+  //   (rtime_last_played isn't 100% reliable from Steam, but it's the
+  //   best signal we have for the > 14d range.)
+  //
+  // We union the two, keyed by appid, and estimate playtime.
   const days = range === "7d" ? 7 : 30;
   const cutoff = Math.floor(Date.now() / 1000) - days * 86_400;
 
-  const owned = await getOwnedGames(steamId);
-  const recentIdx = new Map<number, SteamGame>();
-  for (const g of await getRecentlyPlayed(steamId)) recentIdx.set(g.appid, g);
+  const [recent, owned] = await Promise.all([
+    getRecentlyPlayed(steamId),
+    getOwnedGames(steamId),
+  ]);
 
-  const filtered = owned
-    .filter((g) => (g.rtime_last_played ?? 0) >= cutoff && g.playtime_forever > 0)
-    .map((g) => {
-      // If the game shows up in recent (i.e. played in last 14d), scale its
-      // 2-week minutes to the requested window. Otherwise fall back to a
-      // conservative fraction of playtime_forever.
-      const twoWeekMin = recentIdx.get(g.appid)?.playtime_2weeks;
-      let estimate: number;
-      if (twoWeekMin !== undefined) {
-        estimate =
-          range === "7d" ? Math.round(twoWeekMin / 2) : twoWeekMin; // ~ bounded
-      } else {
-        estimate = Math.min(g.playtime_forever, 120); // unknown, cap at 2h
-      }
-      return { ...g, _estimate: estimate };
+  const ownedIdx = new Map<number, SteamGame>();
+  for (const g of owned) ownedIdx.set(g.appid, g);
+
+  const byAppId = new Map<number, SteamGame & { _estimate: number }>();
+
+  // Floor: everything in GetRecentlyPlayedGames. For 7d we halve the
+  // 2-week number; for 1m we use it as-is (generally an underestimate
+  // since the user may have played 15-30d ago too, but conservative is
+  // better than wrong).
+  for (const g of recent) {
+    const twoW = g.playtime_2weeks ?? 0;
+    const estimate =
+      range === "7d"
+        ? Math.max(1, Math.round(twoW / 2))
+        : Math.max(1, twoW);
+    byAppId.set(g.appid, { ...g, _estimate: estimate });
+  }
+
+  // Additions: games in owned with rtime_last_played in window that
+  // weren't already in recent.
+  for (const g of owned) {
+    if (byAppId.has(g.appid)) continue;
+    if (!g.rtime_last_played || g.rtime_last_played < cutoff) continue;
+    if (g.playtime_forever <= 0) continue;
+    // Unknown in-window playtime; cap at 2h as a conservative placeholder.
+    byAppId.set(g.appid, {
+      ...g,
+      _estimate: Math.min(g.playtime_forever, 120),
     });
+  }
 
-  filtered.sort((a, b) => b._estimate - a._estimate);
+  const filtered = Array.from(byAppId.values()).sort(
+    (a, b) => b._estimate - a._estimate
+  );
 
   const games: SteamGame[] = filtered.map((g) => ({
-    ...g,
-    playtime_2weeks: g._estimate, // overload this field for rendering consistency
+    appid: g.appid,
+    name: g.name,
+    playtime_forever: g.playtime_forever,
+    playtime_2weeks: g._estimate, // overload for rendering consistency
+    rtime_last_played: g.rtime_last_played,
+    img_icon_url: g.img_icon_url,
   }));
   const total = filtered.reduce((a, g) => a + g._estimate, 0);
 
