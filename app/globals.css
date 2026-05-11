@@ -8,68 +8,40 @@
 
 html,
 body {
-  background: #05080a;
-  color: #39ff14;
-  font-family: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+  background: #0f0a0f;
+  color: #ffffff;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle CRT phosphor glow on terminal-class text */
-.crt-text {
-  text-shadow:
-    0 0 1px rgba(57, 255, 20, 0.9),
-    0 0 6px rgba(57, 255, 20, 0.55),
-    0 0 18px rgba(57, 255, 20, 0.25);
-}
-
-/* Scanline overlay. Apply as a child absolutely-positioned layer. */
-.scanlines::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.22) 3px,
-    rgba(0, 0, 0, 0) 4px
-  );
-  mix-blend-mode: multiply;
-  z-index: 3;
-}
-
-/* Curved "tube" vignette */
-.crt-vignette::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 0, 0, 0) 55%,
-    rgba(0, 0, 0, 0.55) 100%
-  );
-  z-index: 4;
-}
-
-/* Moving scan beam across the card for extra CRT flavor */
-.scanbeam {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 30%;
+/* Gradient top strip reminiscent of Steam Replay header */
+.replay-strip {
   background: linear-gradient(
-    to bottom,
-    rgba(57, 255, 20, 0) 0%,
-    rgba(57, 255, 20, 0.05) 50%,
-    rgba(57, 255, 20, 0) 100%
+    90deg,
+    #c79a3a 0%,
+    #e0b74f 18%,
+    #9fce58 48%,
+    #4fbf9c 78%,
+    #3a9ac0 100%
   );
-  pointer-events: none;
-  z-index: 2;
 }
 
-/* Game cover in monochrome-ish phosphor tint while keeping readability */
-.phosphor-tint {
-  filter: grayscale(0.2) contrast(1.05) saturate(1.15)
-    drop-shadow(0 0 6px rgba(57, 255, 20, 0.25));
+/* Background wash for the card: warm burgundy with a slight vertical fade */
+.replay-bg {
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      rgba(90, 20, 60, 0.55) 0%,
+      rgba(35, 10, 30, 0.0) 60%
+    ),
+    linear-gradient(180deg, #25091f 0%, #140812 55%, #0d060c 100%);
 }
+
+/* Faint art bleed: big, very desaturated, low-opacity hero backgrounds */
+.art-bleed {
+  filter: saturate(0.6) brightness(0.55) blur(1px);
+  mix-blend-mode: screen;
+  opacity: 0.22;
+}
+
+

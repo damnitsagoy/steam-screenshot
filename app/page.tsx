@@ -11,61 +11,44 @@ export default async function Home({
   const authFailed = sp?.auth === "failed";
 
   return (
-    <main className="relative mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center px-6 py-16">
-      <div className="scanbeam animate-scan" />
-      <div className="pointer-events-none absolute inset-0 scanlines crt-vignette" />
+    <main className="relative mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="replay-strip mb-10 h-1.5 w-40 rounded-full" />
 
-      <div className="relative z-10 w-full">
-        <pre className="crt-text font-terminal text-3xl leading-none sm:text-5xl">
-{`  ____  _____  _____    _    __  __
- / ___||_   _|| ____|  / \\  |  \\/  |
- \\___ \\  | |  |  _|   / _ \\ | |\\/| |
-  ___) | | |  | |___ / ___ \\| |  | |
- |____/  |_|  |_____/_/   \\_\\_|  |_|
-        //  R E P L A Y`}
-        </pre>
+      <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl">
+        Your Steam Report.
+      </h1>
+      <p className="mt-4 max-w-md text-white/70">
+        A shareable recap of your recent games — hours, top titles, and a
+        downloadable 9:16 card you can post anywhere.
+      </p>
 
-        <p className="crt-text mt-8 max-w-xl font-mono text-sm text-phosphor-dim">
-          &gt; a retro-terminal printout of your recent Steam games.
-          <br />
-          &gt; sign in with Steam, generate your receipt, download a PNG.
-        </p>
-
-        <div className="mt-10 flex flex-wrap items-center gap-4">
-          <a
-            href="/api/auth/steam"
-            className="crt-text inline-flex items-center gap-2 border border-phosphor bg-panel px-5 py-3 font-mono text-sm uppercase tracking-widest text-phosphor shadow-phosphor transition hover:bg-phosphor hover:text-bg"
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/api/auth/steam"
+          className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-ink shadow-lg transition hover:bg-white/90"
+        >
+          Sign in through Steam
+        </a>
+        {existing && (
+          <Link
+            href={`/u/${existing}`}
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-white/80 hover:text-white"
           >
-            [ sign in through steam ]
-          </a>
-
-          {existing && (
-            <Link
-              href={`/u/${existing}`}
-              className="crt-text inline-flex items-center gap-2 border border-phosphor-dim px-5 py-3 font-mono text-sm uppercase tracking-widest text-phosphor-dim hover:border-phosphor hover:text-phosphor"
-            >
-              [ view my receipt ]
-            </Link>
-          )}
-        </div>
-
-        {authFailed && (
-          <p className="mt-6 font-mono text-sm text-phosphor-red">
-            &gt; ERR: steam openid verification failed. try again.
-          </p>
+            View my replay
+          </Link>
         )}
-
-        <div className="crt-text mt-16 font-mono text-xs leading-relaxed text-phosphor-dim">
-          <p>&gt; not affiliated with valve or steam.</p>
-          <p>
-            &gt; we only read public profile + recent games. no password is
-            ever asked.
-          </p>
-          <p className="mt-2">
-            <span className="animate-blink">_</span>
-          </p>
-        </div>
       </div>
+
+      {authFailed && (
+        <p className="mt-6 text-sm text-red-300">
+          Steam OpenID verification failed. Please try again.
+        </p>
+      )}
+
+      <p className="mt-16 text-xs text-white/40">
+        Not affiliated with Valve or Steam. We only read your public profile
+        and recent games — no password is ever requested.
+      </p>
     </main>
   );
 }
