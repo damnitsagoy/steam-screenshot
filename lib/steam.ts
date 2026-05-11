@@ -188,23 +188,43 @@ export async function getRangeStats(
   };
 }
 
-/** Steam CDN image helpers -- no auth required. */
+/**
+ * Route every Steam image through our own `/api/img` proxy so the
+ * browser treats them as same-origin. This is what makes html-to-image
+ * capture reliably on mobile -- cross-origin canvas painting otherwise
+ * breaks silently when Steam's CDN drops CORS headers on cached edges.
+ */
+export function proxied(url: string): string {
+  return `/api/img?u=${encodeURIComponent(url)}`;
+}
+
+/** Steam CDN image helpers -- all routed through our proxy. */
 export const steamImg = {
   /** 460x215 store capsule (landscape) */
   capsule: (appid: number) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`,
+    proxied(
+      `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`
+    ),
   /** 600x900 portrait library capsule (what Steam library shows) */
   libraryCapsule: (appid: number) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`,
+    proxied(
+      `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`
+    ),
   /** 1920x620 library hero */
   libraryHero: (appid: number) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_hero.jpg`,
+    proxied(
+      `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_hero.jpg`
+    ),
   /** transparent logo, good for overlays */
   libraryLogo: (appid: number) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/logo.png`,
+    proxied(
+      `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/logo.png`
+    ),
   /** small 184x69 capsule */
   capsuleSmall: (appid: number) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/capsule_184x69.jpg`,
+    proxied(
+      `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/capsule_184x69.jpg`
+    ),
 };
 
 export function minutesToHours(min: number): number {
