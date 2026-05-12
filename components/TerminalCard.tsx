@@ -4,11 +4,13 @@ import {
   steamImg,
   type PlayerSummary,
   type SteamGame,
+  type Range,
 } from "@/lib/steam";
 
 type Props = {
   player: PlayerSummary;
   games: SteamGame[];
+  range: Range;
   rangeLabel: string;
   approximate: boolean;
   totalMinutes: number;
@@ -16,39 +18,30 @@ type Props = {
 
 /**
  * "Steam Report" share card at a fixed design size of 540 x 960 (9:16).
- *
- * Must always render at that exact size -- the parent <ScaleToFit> handles
- * visual scaling for responsive preview. That way:
- *  - Tailwind's fixed-pixel utilities (px-7, text-[88px], etc.) are always
- *    correct relative to the card
- *  - The downloaded PNG is captured at design size and exported at 2x
- *    for a crisp 1080 x 1920 output
- *
- * Root element has id="receipt-card" so html-to-image can target it.
- *
- * Avoids `mix-blend-mode`, `mask-image`, and `background-image` for remote
- * assets because those don't export reliably across mobile browsers via
- * html-to-image. Uses an actual <img crossOrigin="anonymous"> for the hero
- * art, and a sibling gradient div for the fade.
  */
 export default function TerminalCard({
   player,
   games,
+  range,
   rangeLabel,
   approximate,
   totalMinutes,
 }: Props) {
   const top = games.slice(0, 5);
-  const maxMinutes = Math.max(
-    1,
-    ...top.map((g) => g.playtime_2weeks ?? g.playtime_forever)
-  );
+
+  // For all-time, always use playtime_forever. For other ranges, use
+  // playtime_2weeks (which holds the estimated/actual window playtime).
+  const getMinutes = (g: SteamGame) =>
+    range === "all" ? g.playtime_forever : (g.playtime_2weeks ?? g.playtime_forever);
+
+  const maxMinutes = Math.max(1, ...top.map(getMinutes));
   const totalHours = minutesToHours(totalMinutes);
   const gamesPlayedCount = games.length;
   const uniqueCount = games.length;
   const heroAppid = top[0]?.appid;
 
   const year = new Date().getFullYear();
+  const dateRange = computeDateRange(range);
 
   return (
     <div
@@ -66,8 +59,7 @@ export default function TerminalCard({
         </span>
       </div>
 
-      {/* Hero artwork as an <img> -- reliable to capture on mobile Safari
-          (unlike background-image URLs). */}
+      {/* Hero artwork */}
       {heroAppid && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -83,9 +75,6 @@ export default function TerminalCard({
               opacity: 0.55,
             }}
           />
-          {/* Gradient overlay that fades the art into the background color.
-              Using a simple linear-gradient (not mask-image) so it captures
-              consistently on mobile. */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 z-[1]"
@@ -110,10 +99,6 @@ export default function TerminalCard({
             <div
               className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10"
               style={{
-                // Inner shadow gives the subtle ring effect without
-                // painting a stroke *outside* the <img>, which on mobile
-                // Safari sometimes appears as a hollow arc when the
-                // image fails to load.
                 boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.18)",
               }}
             >
@@ -132,6 +117,10 @@ export default function TerminalCard({
             </div>
             <div className="text-[11px] uppercase tracking-[0.18em] text-white/60">
               {rangeLabel}
+            </div>
+            {/* Date range under the label */}
+            <div className="text-[10px] text-white/40">
+              {dateRange}
             </div>
           </div>
         </div>
@@ -176,7 +165,7 @@ export default function TerminalCard({
           ) : (
             <ol className="space-y-2">
               {top.map((g, i) => {
-                const minutes = g.playtime_2weeks ?? g.playtime_forever;
+                const minutes = getMinutes(g);
                 const hours = minutesToHours(minutes);
                 const barPct = Math.max(
                   6,
@@ -208,7 +197,7 @@ export default function TerminalCard({
                           {g.name}
                         </div>
                         <div className="shrink-0 text-sm font-semibold tabular-nums text-white/90">
-                          {approximate ? "~" : ""}
+                          {approximate && range !== "all" ? "~" : ""}
                           {hours}h
                         </div>
                       </div>
@@ -274,6 +263,37 @@ function barColor(i: number) {
 
 function formatDate() {
   const d = new Date();
-  const month = d.toLocaleString("en-US", { month: "short" });
-  return `${month} ${d.getDate()}, ${d.getFullYear()}`;
+  return fmtShort(d);
+}
+
+/**
+ * Compute a human-readable date range string for the given range type.
+ * e.g. "May 5 – May 12, 2026" or "All time" for the all range.
+ */
+function computeDateRange(range: Range): string {
+  const now = new Date();
+  const end = fmtShort(now);
+
+  if (range === "all") {
+    return "All time";
+  }
+
+  const daysBack = range === "7d" ? 7 : range === "2w" ? 14 : 30;
+  const start = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+
+  // If same month, collapse: "May 5 – 12, 2026"
+  if (
+    start.getMonth() === now.getMonth() &&
+    start.getFullYear() === now.getFullYear()
+  ) {
+    const mon = now.toLocaleString("en-US", { month: "short" });
+    return `${mon} ${start.getDate()} – ${now.getDate()}, ${now.getFullYear()}`;
+  }
+
+  return `${fmtShort(start)} – ${end}`;
+}
+
+function fmtShort(d: Date): string {
+  const mon = d.toLocaleString("en-US", { month: "short" });
+  return `${mon} ${d.getDate()}, ${d.getFullYear()}`;
 }
