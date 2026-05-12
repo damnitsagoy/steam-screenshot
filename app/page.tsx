@@ -48,6 +48,13 @@ export default async function Home({
       <p className="mt-16 text-xs text-white/40">
         Not affiliated with Valve or Steam. We only read your public profile
         and recent games — no password is ever requested.
+        {" "}
+        <Link
+          href="/troubleshoot"
+          className="underline underline-offset-2 hover:text-white/70"
+        >
+          Troubleshoot
+        </Link>
       </p>
 
       <p className="mt-4 text-xs text-white/50">
