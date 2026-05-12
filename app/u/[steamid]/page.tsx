@@ -85,10 +85,18 @@ export default async function UserPage({
       )}
 
       {stats.games.length === 0 && (
-        <p className="mt-6 max-w-sm text-center text-sm text-white/70">
-          No games found in this window. Your profile&apos;s game details may
-          be private, or you haven&apos;t played anything recently.
-        </p>
+        <div className="mt-6 max-w-sm text-center">
+          <p className="text-sm text-white/70">
+            No games found in this window. Your profile&apos;s game details may
+            be private, or you haven&apos;t played anything recently.
+          </p>
+          <Link
+            href="/troubleshoot"
+            className="mt-3 inline-block text-xs text-accent-yellow underline underline-offset-2 hover:text-white"
+          >
+            How to fix this →
+          </Link>
+        </div>
       )}
 
       {/* Extra bottom padding so on mobile the download button and caption
