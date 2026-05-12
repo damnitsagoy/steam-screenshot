@@ -62,6 +62,7 @@ export default async function UserPage({
           <TerminalCard
             player={player}
             games={stats.games}
+            range={range}
             rangeLabel={stats.label}
             approximate={stats.approximate}
             totalMinutes={stats.totalMinutes}

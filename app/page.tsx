@@ -18,8 +18,8 @@ export default async function Home({
         Your Steam Report.
       </h1>
       <p className="mt-4 max-w-md text-white/70">
-        A shareable recap of your recent games — hours, top titles, and a
-        downloadable 9:16 card you can post anywhere.
+        Recap your gaming — last 7 days, 2 weeks, a month, or all time.
+        Download a shareable card.
       </p>
 
       <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
