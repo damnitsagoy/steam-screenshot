@@ -219,37 +219,36 @@ export default function TerminalCard({
           )}
         </div>
 
-        {/* Footer with barcode + branding */}
-        <div className="mt-auto pt-5 flex flex-col items-center gap-2">
-          <div className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.22em] text-white/40">
-            <span>steam-report</span>
-            <span>
-              {approximate ? "estimated · " : ""}
-              generated {formatDate()}
-            </span>
-          </div>
-
-          {/* Barcode + URL + Steam logo row */}
-          <div className="flex flex-col items-center gap-1.5 pt-2 border-t border-white/5 w-full">
+        {/* Footer with QR code + branding */}
+        <div className="mt-auto pt-4 border-t border-white/5">
+          <div className="flex items-center gap-4">
+            {/* QR code - scannable link to the site */}
             <Barcode
               url="https://steam-screenshot-topaz.vercel.app/"
-              width={220}
-              height={32}
-              className="text-white/50"
+              size={56}
+              className="shrink-0 text-white/60"
             />
-            <div className="flex items-center gap-2">
-              {/* Steam logo (inline SVG) */}
-              <svg
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-3.5 w-3.5 text-white/40"
-                aria-hidden
-              >
-                <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658a3.387 3.387 0 0 1 1.912-.59c.064 0 .127.003.19.006l2.861-4.142v-.058a4.527 4.527 0 0 1 4.524-4.524 4.527 4.527 0 0 1 4.524 4.524 4.527 4.527 0 0 1-4.524 4.524h-.105l-4.076 2.911c0 .052.004.105.004.158a3.39 3.39 0 0 1-3.39 3.393 3.406 3.406 0 0 1-3.345-2.82L.453 15.306A11.986 11.986 0 0 0 11.979 24c6.627 0 12-5.373 12-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61a2.542 2.542 0 0 0 4.645-.903 2.543 2.543 0 0 0-2.541-2.545c-.164 0-.325.016-.483.047l1.523.63a1.868 1.868 0 0 1-1.423 3.453l-.248-.072zm8.4-8.794a3.016 3.016 0 0 0-3.012-3.012 3.016 3.016 0 0 0-3.012 3.012 3.016 3.016 0 0 0 3.012 3.012 3.016 3.016 0 0 0 3.012-3.012zm-5.27-.005a2.26 2.26 0 0 1 2.258-2.258 2.26 2.26 0 0 1 2.258 2.258 2.26 2.26 0 0 1-2.258 2.258 2.26 2.26 0 0 1-2.258-2.258z" />
-              </svg>
-              <span className="text-[10px] text-white/40 tracking-wide">
-                steam-screenshot-topaz.vercel.app
-              </span>
+
+            {/* Branding text */}
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                {/* Steam logo (inline SVG) */}
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-3.5 w-3.5 shrink-0 text-white/50"
+                  aria-hidden
+                >
+                  <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658a3.387 3.387 0 0 1 1.912-.59c.064 0 .127.003.19.006l2.861-4.142v-.058a4.527 4.527 0 0 1 4.524-4.524 4.527 4.527 0 0 1 4.524 4.524 4.527 4.527 0 0 1-4.524 4.524h-.105l-4.076 2.911c0 .052.004.105.004.158a3.39 3.39 0 0 1-3.39 3.393 3.406 3.406 0 0 1-3.345-2.82L.453 15.306A11.986 11.986 0 0 0 11.979 24c6.627 0 12-5.373 12-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61a2.542 2.542 0 0 0 4.645-.903 2.543 2.543 0 0 0-2.541-2.545c-.164 0-.325.016-.483.047l1.523.63a1.868 1.868 0 0 1-1.423 3.453l-.248-.072zm8.4-8.794a3.016 3.016 0 0 0-3.012-3.012 3.016 3.016 0 0 0-3.012 3.012 3.016 3.016 0 0 0 3.012 3.012 3.016 3.016 0 0 0 3.012-3.012zm-5.27-.005a2.26 2.26 0 0 1 2.258-2.258 2.26 2.26 0 0 1 2.258 2.258 2.26 2.26 0 0 1-2.258 2.258 2.26 2.26 0 0 1-2.258-2.258z" />
+                </svg>
+                <span className="text-[11px] font-medium text-white/60">
+                  steam-screenshot-topaz.vercel.app
+                </span>
+              </div>
+              <div className="text-[9px] uppercase tracking-[0.22em] text-white/35">
+                {approximate ? "estimated · " : ""}
+                generated {formatDate()}
+              </div>
             </div>
           </div>
         </div>
